@@ -27,6 +27,7 @@
     "fs": "^0.0.1-security",
     "http": "^0.0.1-security",
     "https": "^1.0.0",
+    "morgan-body": "^2.6.6",
     "node-fetch": "^3.2.6",
     "path": "^0.12.7",
     "secure-random": "^1.1.2",

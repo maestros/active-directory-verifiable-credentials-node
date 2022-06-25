@@ -18,7 +18,9 @@
       {
         "type": "VerifiedCredentialExpert",
         "purpose": "the purpose why the verifier asks for a VC",
-        "acceptedIssuers": [ "...set at runtime..." ]
+        "acceptedIssuers": [
+          "...set at runtime..."
+        ]
       }
     ]
   }

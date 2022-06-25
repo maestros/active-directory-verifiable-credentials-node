@@ -57,6 +57,10 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+// support parsing of application/json type post data
+app.use(bodyParser.json());
+app.use(express.json());
+
 
 console.log(`MSALCONFIG: https://login.microsoftonline.com/${config.azTenantId}`)
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -128,6 +132,7 @@ var parser = bodyParser.urlencoded({ extended: false });
 
 // Serve static files out of the /public directory
 app.use(express.static('public'))
+app.use(express.json());
 
 // Set up a simple server side session store.
 // The session store will briefly cache issuance requests
@@ -178,7 +183,6 @@ app.get('/', function (req, res) {
 })
 
 // verifier
-var parser = bodyParser.urlencoded({ extended: false });
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Setup the presentation request payload template
@@ -192,8 +196,14 @@ presentationConfig.authority = config["VerifierAuthority"]
 // this value is an array in the payload, you can trust multiple issuers for the same credentialtype
 // very common to accept the test VCs and the Production VCs coming from different verifiable credential services
 presentationConfig.presentation.requestedCredentials[0].acceptedIssuers[0] = config["IssuerAuthority"]
-var apiKey = uuid.v4();
+
+// this is a dirty hack to avoid a bug
+var apiKey = '8294beaa-a7f9-490c-851a-a666679d942d';
+
+console.log('Generated new apiKey: ' + apiKey);
+
 if ( presentationConfig.callback.headers ) {
+  console.log('Stored apiKey in the presentationConfig')
   presentationConfig.callback.headers['api-key'] = apiKey;
 }
 
@@ -274,14 +284,16 @@ app.get('/api/verifier/presentation-request', cors(), async (req, res) => {
       'Authorization': `Bearer ${accessToken}`
     }
   };
-
+  
   console.log('client_api_request_endpoint: ' + client_api_request_endpoint);
 
   const response = await fetch(client_api_request_endpoint, fetchOptions);
   var resp = await response.json()
 
-  // the response from the VC Request API call is returned to the caller (the UI). It contains the URI to the request which Authenticator can download after
-  // it has scanned the QR code. If the payload requested the VC Request service to create the QR code that is returned as well
+  // the response from the VC Request API call is returned to the caller (the UI).
+  // It contains the URI to the request which Authenticator can download after
+  // it has scanned the QR code.
+  // If the payload requested the VC Request service to create the QR code that is returned as well
   // the javascript in the UI will use that QR code to display it on the screen to the user.            
   resp.id = id;                              // add id so browser can pull status
   console.log( 'VC Client API Response' );
@@ -294,23 +306,26 @@ app.get('/api/verifier/presentation-request', cors(), async (req, res) => {
  */
 app.post('/api/verifier/presentation-request-callback', parser, async (req, res) => {
   console.log('Inside /api/verifier/presentation-request-callback');
-  var body = '';
-  req.on('data', function (data) {
-    console.log('adding data: ' + data);
-    body += data;
-  });
-  req.on('end', function () {
+  console.log(req.body);
+  var body = req.body;
+  
     console.log('Received presentation-request-callback data');
     requestTrace( req );
-    console.log( body );
-    if ( req.headers['api-key'] != apiKey ) {
+
+    console.log('Comparing api keys');
+    console.log( req.headers['api-key'])
+    console.log(apiKey);
+
+    if ( req.headers['api-key'] !== apiKey ) {
       res.status(401).json({
         'error': 'api-key wrong or missing'
         });
-        console.log('error: api-key wrong or missing');
+        console.log('error: api-key wrong or missing ');
+        console.log(req.headers['api-key']);
       return; 
     }
-    var presentationResponse = JSON.parse(body.toString());
+    var presentationResponse = body;
+
     console.log('presentationResponse');
     console.log(presentationResponse);
 
@@ -341,7 +356,7 @@ app.post('/api/verifier/presentation-request-callback', parser, async (req, res)
       sessionStore.get(presentationResponse.state, (error, session) => {
         var cacheData = {
             "status": presentationResponse.code,
-            "message": "Presentation received",
+            "message": "Verifiable Credential Validated!",
             "payload": presentationResponse.issuers,
             "subject": presentationResponse.subject,
             "firstName": presentationResponse.issuers[0].claims.firstName,
@@ -355,7 +370,7 @@ app.post('/api/verifier/presentation-request-callback', parser, async (req, res)
         });
       })      
     }
-  });  
+
   res.send()
 })
 /**

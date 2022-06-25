@@ -69,7 +69,7 @@
                     }).catch(error => { console.log(error.message); })
                     var checkStatus = setInterval(function () {
                         fetch('https://us-central1-vc-node-demo.cloudfunctions.net/app/api/verifier/presentation-response?id=' + respPresentationReq.id,
-                        {mode: 'no-cors'})
+                        {mode: 'cors'})
                             .then(response => response.text())
                             .catch(error => document.getElementById("message").innerHTML = error)
                             .then(response => {
@@ -86,8 +86,8 @@
                                     
                                     if (respMsg.status == 'presentation_verified') {
                                         document.getElementById('message').innerHTML = respMsg.message;
-                                        document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
-                                        document.getElementById('subject').innerHTML = respMsg.firstName +" " + respMsg.lastName +" is a Verifiable Credential Expert";
+                                    //    document.getElementById('payload').innerHTML = "Payload: " + JSON.stringify(respMsg.payload);
+                                        document.getElementById('subject').innerHTML = respMsg.firstName +" " + respMsg.lastName;
                                         clearInterval(checkStatus);
                                     }
                                 }
